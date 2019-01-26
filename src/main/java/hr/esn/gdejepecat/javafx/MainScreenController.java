@@ -1,9 +1,9 @@
 package hr.esn.gdejepecat.javafx;
 
-import hr.esn.gdejepecat.model.UIData;
+import hr.esn.gdejepecat.Main;
 import hr.esn.gdejepecat.exception.GdeJePecatException;
 import hr.esn.gdejepecat.filter.FileFormats;
-import hr.esn.gdejepecat.Main;
+import hr.esn.gdejepecat.model.UIData;
 import hr.esn.gdejepecat.service.ImageService;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -21,9 +21,13 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.function.UnaryOperator;
 
-public class MainScreenController implements Initializable {
+public class MainScreenController implements Initializable{
     ImageService imageService;
     File imagesDirectory = null;
     File logo = null;
@@ -145,16 +149,55 @@ public class MainScreenController implements Initializable {
 
     @FXML
     public void putLogos() {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        Future<Future<Void>> processingResult;
         if (imagesDirectory != null && logo != null) {
-            try {
-                imageService.putLogo(getUiData());
-            } catch (GdeJePecatException e) {
-                showWarning(e.getMessage());
-            }
+            processingResult = executorService.submit(() -> {
+                return imageService.putLogo(getUiData());
+               // return null;
+            });
         } else {
-            System.out.println("Putanja do mape sa slikama ili logoa nije ispravno postavljena");
+            showWarning("Path to images folder or logo is not properly set");
+            return;
         }
 
+//        ExecutorService progressExecutorService = Executors.newSingleThreadExecutor();
+//        progressExecutorService.submit(() -> showProgress());
+
+        showProgress();
+        try {
+            Void v = processingResult.get().get();
+            System.out.println("Void: " + v);
+        } catch (InterruptedException | ExecutionException e) {
+            System.out.println("Ušao u keč: " + e.getMessage());
+            showWarning(e.getCause().getMessage());
+            return;
+        }
+    }
+
+    @FXML
+    public void preview() {
+        BufferedImage previewImage = null;
+        FXMLLoader fxmlLoader = new FXMLLoader();
+        fxmlLoader.setLocation(getClass().getResource("/fxml/preview.fxml"));
+        try {
+            fxmlLoader.load();
+            previewImage = imageService.getPreviewImage(getUiData());
+        }
+        catch (IOException | GdeJePecatException e) {
+                showWarning(e.getMessage());
+                return;
+        }
+
+        PreviewController previewController = fxmlLoader.getController();
+        previewController.setPreview(previewImage);
+
+        Parent parent = fxmlLoader.getRoot();
+        Stage stage = new Stage();
+        stage.setTitle("Preview");
+        stage.setScene(new Scene(parent, 1190, 870));
+        stage.setResizable(false);
+        stage.show();
     }
 
     private UIData getUiData() {
@@ -174,36 +217,10 @@ public class MainScreenController implements Initializable {
             yOffset = Integer.parseInt(txtYOffset.getText());
         } catch (NumberFormatException e) {
             System.out.println("Sve vrijednosti nisu ispravno popunjene");
+            showWarning("All values are not properly set");
         }
 
         return new UIData(imagesDirectory, logo, width, height, xOffset, yOffset, opacity, scaleFactor);
-    }
-
-    @FXML
-    public void preview() {
-        BufferedImage previewImage = null;
-        FXMLLoader fxmlLoader = new FXMLLoader();
-        fxmlLoader.setLocation(getClass().getResource("/fxml/preview.fxml"));
-        try {
-            fxmlLoader.load();
-            previewImage = imageService.getPreviewImage(getUiData());
-        }
-        catch (IOException | GdeJePecatException e) {
-            if (e instanceof GdeJePecatException) {
-                showWarning(e.getMessage());
-            } else {
-                e.printStackTrace();
-            }
-        }
-
-        PreviewController previewController = fxmlLoader.getController();
-        previewController.setPreview(previewImage);
-
-        Parent parent = fxmlLoader.getRoot();
-        Stage stage = new Stage();
-        stage.setTitle("Preview");
-        stage.setScene(new Scene(parent, 450, 450));
-        stage.show();
     }
 
     private UnaryOperator<TextFormatter.Change> getNumberFilter() {
@@ -224,5 +241,26 @@ public class MainScreenController implements Initializable {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    private void showProgress() {
+        FXMLLoader fxmlLoader = new FXMLLoader();
+        fxmlLoader.setLocation(getClass().getResource("/fxml/progress.fxml"));
+        try {
+            fxmlLoader.load();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        ProgressController progressController = fxmlLoader.getController();
+        progressController.setImageService(imageService);
+
+        Parent parent = fxmlLoader.getRoot();
+        Stage stage = new Stage();
+        stage.setTitle("Progress");
+        stage.setScene(new Scene(parent));
+        stage.setResizable(false);
+        stage.show();
+
     }
 }
