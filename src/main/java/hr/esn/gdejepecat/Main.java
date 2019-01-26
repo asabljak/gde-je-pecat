@@ -4,6 +4,7 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
 public class Main extends Application {
@@ -15,6 +16,7 @@ public class Main extends Application {
         primaryStage.setTitle("Gde je pečat?");
         primaryStage.setScene(new Scene(root, 750, 500));
         primaryStage.setResizable(false);
+        primaryStage.getIcons().add(new Image("/icons/icon.png"));
         pStage = primaryStage;
         primaryStage.show();
     }

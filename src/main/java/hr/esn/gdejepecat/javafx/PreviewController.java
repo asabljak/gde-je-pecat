@@ -22,7 +22,7 @@ public class PreviewController {
     }
 
     @FXML
-    public void exitPreview() {
+    public void close() {
         Stage stage = (Stage) bttnExit.getScene().getWindow();
         stage.close();
     }
