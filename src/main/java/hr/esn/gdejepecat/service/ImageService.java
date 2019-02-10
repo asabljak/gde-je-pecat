@@ -11,20 +11,25 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 public class ImageService {
     AtomicInteger finished;
     ExecutorService executorService;
     Future<Void> executionResult;
     int imagesTotal;
+    private ArrayList<BufferedImage> bufferedImageList = new ArrayList<>();
+    UIData uiData;
 
     public ImageService() {
         finished = new AtomicInteger();
     }
 
     public Future<Void> putLogo(UIData uiData) throws GdeJePecatException {
+        this.uiData = uiData;
         File destination;
         File[] allPhotos = uiData.getImagesDirectory().listFiles(getImageFilter());
         imagesTotal = allPhotos.length;
@@ -36,14 +41,24 @@ public class ImageService {
         long begin = System.currentTimeMillis();
         executorService = Executors.newFixedThreadPool(4);
 
-        for(File photo : allPhotos) {
-            ImageService imageService = new ImageService();
+        ///////////////////////////////////////////////
+        //ImageService imageService = new ImageService();
+        Stream.of(allPhotos)
+                .parallel()
+                .forEach(this::mergeImages);
+
+        long end = System.currentTimeMillis();
+        long time = end - begin;
+        System.out.println("Duration: " + time + " milis");
+
+      /*  for(File photo : allPhotos) {
+
 
             File resultImage = new File(destination.getAbsolutePath() + "/" + photo.getName());
 
             executionResult = executorService.submit(() -> {
-                BufferedImage sourceImage = imageService.mergeImages(photo, uiData.getLogo(), uiData.getxOffset(), uiData.getyOffset(), uiData.getOpacity(),
-                        uiData.getScaleFactor(), uiData.getWidth(), uiData.getHeight());
+                BufferedImage sourceImage = imageService.mergeImages(photo, uiData.getLogo(), uiData.getxOffset(), uiData.getyOffset(),
+                        uiData.getOpacity(),uiData.getScaleFactor(), uiData.getWidth(), uiData.getHeight());
                 try {
                     ImageIO.write(sourceImage, "jpeg", resultImage);
                 } catch (IOException e) {
@@ -52,10 +67,11 @@ public class ImageService {
                 finished.getAndIncrement();
                 return null;
             });
-        }
+        }*/
 
 //        executorService.shutdown();
-        try {
+
+       /* try {
             executionResult.get();
         } catch (InterruptedException | ExecutionException e) {
             throw new GdeJePecatException(e.getCause().getMessage());
@@ -63,15 +79,17 @@ public class ImageService {
 
         long end = System.currentTimeMillis();
         long time = end - begin;
-        System.out.println("Duration: " + time + " milis");
+        System.out.println("Duration: " + time + " milis");*/
 
         return executionResult;
     }
 
     public BufferedImage getPreviewImage(UIData uiData) throws GdeJePecatException{
-        File photo = uiData.getImagesDirectory().listFiles(getImageFilter())[0];
-        return mergeImages(photo, uiData.getLogo(), uiData.getxOffset(), uiData.getyOffset(), uiData.getOpacity(),
-                uiData.getScaleFactor(), uiData.getWidth(), uiData.getHeight());
+        File photo = uiData.getImagesDirectory().listFiles(getImageFilter())[0]; //TODO provjeri null
+        Stream.of(photo).forEach(this::mergeImages);
+        return bufferedImageList.get(0);
+//        /*return mergeImages(photo, uiData.getLogo(), uiData.getxOffset(), uiData.getyOffset(), uiData.getOpacity(),
+//         */       uiData.getScaleFactor(), uiData.getWidth(), uiData.getHeight());
 
     }
 
@@ -94,12 +112,18 @@ public class ImageService {
         }
     }
 
-    private BufferedImage mergeImages(File photo, File logo, int logoHorizontalOffset, int logoVerticalOffset,
-                                      float logoOpacity, float logoScale, int width, int height) throws GdeJePecatException{
+    private void mergeImages(File photo) {
         BufferedImage sourceImage = null;
+        int width = uiData.getWidth();
+        int height = uiData.getHeight();
+        double logoScale = uiData.getScaleFactor();
+        float logoOpacity = uiData.getOpacity();
+        int logoHorizontalOffset = uiData.getxOffset();
+        int logoVerticalOffset = uiData.getyOffset();
+
         try {
             sourceImage =  ImageIO.read(photo);
-            BufferedImage watermarkImage = ImageIO.read(logo);
+            BufferedImage watermarkImage = ImageIO.read(uiData.getLogo());
 
             // resize original image
             if((sourceImage.getWidth() != width || sourceImage.getHeight() != height)
@@ -141,7 +165,15 @@ public class ImageService {
             System.err.println(photo.getAbsolutePath() + " - " +  ex);
         }
 
-        return sourceImage;
+        bufferedImageList.add(sourceImage);
+
+        File destination = new File(uiData.getImagesDirectory().getAbsolutePath() + "/gde_je_pecat/");
+        File resultImage = new File(destination.getAbsolutePath() + "/" + photo.getName());
+        try {
+            ImageIO.write(sourceImage, "jpeg", resultImage);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private FilenameFilter getImageFilter() {

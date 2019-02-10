@@ -156,7 +156,8 @@ public class MainScreenController implements Initializable{
         Future<Future<Void>> processingResult;
         if (imagesDirectory != null && logo != null) {
             processingResult = executorService.submit(() -> {
-                return imageService.putLogo(getUiData());
+                UIData ud = getUiData();
+                return imageService.putLogo(ud);
                // return null;
             });
         } else {
@@ -165,9 +166,10 @@ public class MainScreenController implements Initializable{
         }
 
 //        ExecutorService progressExecutorService = Executors.newSingleThreadExecutor();
-//        progressExecutorService.submit(() -> showProgress());
+//        progressExecutorService.submit(() -> showProgress()); staro
 
-        showProgress();
+        //showProgress();
+
         try {
             Void v = processingResult.get().get();
             System.out.println("Void: " + v);

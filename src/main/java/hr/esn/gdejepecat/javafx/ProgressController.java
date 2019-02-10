@@ -63,8 +63,8 @@ public class ProgressController implements Initializable {
 
     @FXML
     public void showProgress() {
-        Thread thread = new Thread(new BgThread());
-        thread.start();
+//        Thread thread = new Thread(new BgThread());
+//        thread.start();
     }
 
     @FXML
