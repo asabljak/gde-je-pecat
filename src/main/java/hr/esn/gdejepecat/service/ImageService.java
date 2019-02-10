@@ -18,7 +18,7 @@ public class ImageService {
     AtomicInteger finished;
     ExecutorService executorService;
     Future<Void> executionResult;
-    int imagessTotal;
+    int imagesTotal;
 
     public ImageService() {
         finished = new AtomicInteger();
@@ -27,7 +27,7 @@ public class ImageService {
     public Future<Void> putLogo(UIData uiData) throws GdeJePecatException {
         File destination;
         File[] allPhotos = uiData.getImagesDirectory().listFiles(getImageFilter());
-        imagessTotal = allPhotos.length;
+        imagesTotal = allPhotos.length;
 
         destination = new File(uiData.getImagesDirectory().getAbsolutePath() + "/gde_je_pecat/");
         destination.mkdirs();
@@ -80,7 +80,7 @@ public class ImageService {
     }
 
     public int getTotalImageNumber() {
-        return this.imagessTotal;
+        return this.imagesTotal;
     }
 
     public int getNumberOfFinishedImages() {

@@ -5,6 +5,8 @@ import hr.esn.gdejepecat.exception.GdeJePecatException;
 import hr.esn.gdejepecat.filter.FileFormats;
 import hr.esn.gdejepecat.model.UIData;
 import hr.esn.gdejepecat.service.ImageService;
+import javafx.application.Platform;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -15,6 +17,7 @@ import javafx.scene.layout.GridPane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -263,4 +266,6 @@ public class MainScreenController implements Initializable{
         stage.show();
 
     }
+
+
 }

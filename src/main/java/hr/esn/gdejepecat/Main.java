@@ -1,11 +1,14 @@
 package hr.esn.gdejepecat;
 
 import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 public class Main extends Application {
     private static Stage pStage;
@@ -17,6 +20,16 @@ public class Main extends Application {
         primaryStage.setScene(new Scene(root, 750, 500));
         primaryStage.setResizable(false);
         primaryStage.getIcons().add(new Image("/icons/icon.png"));
+        primaryStage.setOnHiding(new EventHandler<WindowEvent>() {
+            @Override
+            public void handle(WindowEvent event) {
+                Platform.runLater(() -> {
+                    System.out.println("Application Closed by click to Close Button(X)");
+                    Platform.exit();
+                    System.exit(0);
+                });
+            }
+        });
         pStage = primaryStage;
         primaryStage.show();
     }
