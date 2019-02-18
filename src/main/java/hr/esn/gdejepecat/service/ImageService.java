@@ -43,6 +43,8 @@ public class ImageService {
     }
 
     public BufferedImage getPreviewImage(UIData uiData) throws GdeJePecatException{
+        this.uiData = uiData;
+        finished = new AtomicInteger();
         File[] photos = uiData.getImagesDirectory().listFiles(getImageFilter());
             if (photos != null) {
             Stream.of(photos)
