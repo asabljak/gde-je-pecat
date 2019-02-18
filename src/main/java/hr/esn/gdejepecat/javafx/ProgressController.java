@@ -4,7 +4,6 @@ import hr.esn.gdejepecat.service.ImageService;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
@@ -12,6 +11,9 @@ import javafx.stage.Stage;
 
 import java.net.URL;
 import java.util.ResourceBundle;
+
+import static hr.esn.gdejepecat.helper.AlertHelper.showInfo;
+import static hr.esn.gdejepecat.helper.AlertHelper.showWarning;
 
 public class ProgressController implements Initializable {
     @FXML
@@ -23,7 +25,7 @@ public class ProgressController implements Initializable {
     @FXML
     Button bttnCancel;
 
-    ImageService imageService;
+    private ImageService imageService;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -34,18 +36,19 @@ public class ProgressController implements Initializable {
     class BgThread implements Runnable {
         @Override
         public void run() {
-            double finished = -1;
-            double total = 0;
+            int finished = -1;
+            int total = 0;
             while (imageService.isWorkInProgress() && finished < total) {
-                finished = imageService.getNumberOfFinishedImages();
+                finished = imageService.getFinishedImagesNumber() + imageService.getFailed();
                 total = imageService.getTotalImageNumber();
+                int finalFinished = finished; //this must be effectively final
+                int finalTotal = total; //this must be effectively final
+
                 System.out.println("Finished: " + finished + " Total: " + total);
                 if(finished != 0 && total != 0 ) {
-                    pbFinished.setProgress(finished / total);
-                    System.out.println("Progress: " + finished/total);
+                    Platform.runLater(() -> pbFinished.setProgress((double) finalFinished / finalTotal));
+                    System.out.println("Progress: " + (double) finished/total);
                 }
-                int finalFinished = (int)finished;
-                int finalTotal = (int)total;
                 Platform.runLater(() -> lblFinished.setText("Finished: " + finalFinished + " / " + finalTotal));
                 try {
                     Thread.sleep(100);
@@ -54,21 +57,24 @@ public class ProgressController implements Initializable {
                 }
             }
             Thread.currentThread().interrupt();
-            if (finished == total) {
+            if (imageService.getFailed() > 0 && finished == total) {
+                Platform.runLater(() -> showWarning("Done. " + imageService.getFailed() + " image(s) editing failed!"));
+            }
+            else if (finished == total) {
                 Platform.runLater(() -> showInfo("All images edited successfully!"));
             }
-            Platform.runLater(() -> terminate()); //FIXME ovo nije ok
+            Platform.runLater(() -> terminate());
         }
     }
 
     @FXML
-    public void showProgress() {
-//        Thread thread = new Thread(new BgThread());
-//        thread.start();
+    private void showProgress() {
+        Thread thread = new Thread(new BgThread());
+        thread.start();
     }
 
     @FXML
-    public void terminate() {
+    private void terminate() {
         imageService.terminate();
         Stage stage = (Stage) bttnCancel.getScene().getWindow();
         stage.close();
@@ -77,13 +83,4 @@ public class ProgressController implements Initializable {
     public void setImageService(ImageService imageService) {
         this.imageService = imageService;
     }
-
-    private void showInfo(String message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Done");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
-    }
-
 }

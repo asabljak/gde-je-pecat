@@ -10,7 +10,7 @@ import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
-public class Main extends Application {
+public class GdeJePecatApp extends Application {
     private static Stage pStage;
 
     @Override

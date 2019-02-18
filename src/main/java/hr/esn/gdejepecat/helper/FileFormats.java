@@ -1,4 +1,4 @@
-package hr.esn.gdejepecat.filter;
+package hr.esn.gdejepecat.helper;
 
 public class FileFormats {
     private static final String[] supportedFormats = new String[]{

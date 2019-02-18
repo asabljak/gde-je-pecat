@@ -1,8 +1,8 @@
 package hr.esn.gdejepecat.javafx;
 
-import hr.esn.gdejepecat.Main;
+import hr.esn.gdejepecat.GdeJePecatApp;
 import hr.esn.gdejepecat.exception.GdeJePecatException;
-import hr.esn.gdejepecat.filter.FileFormats;
+import hr.esn.gdejepecat.helper.FileFormats;
 import hr.esn.gdejepecat.model.UIData;
 import hr.esn.gdejepecat.service.ImageService;
 import javafx.application.Platform;
@@ -24,16 +24,16 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.function.UnaryOperator;
 
+import static hr.esn.gdejepecat.helper.AlertHelper.showWarning;
+
 public class MainScreenController implements Initializable{
-    ImageService imageService;
-    File imagesDirectory = null;
-    File logo = null;
+    private ImageService imageService;
+    private File imagesDirectory = null;
+    private File logo = null;
 
     @FXML
     Label lblFolderPath;
@@ -114,9 +114,10 @@ public class MainScreenController implements Initializable{
     public void pickFolder() {
         DirectoryChooser chooser = new DirectoryChooser();
         chooser.setTitle("Pick images folder");
-        imagesDirectory = chooser.showDialog(Main.getPrimaryStage());
+        File directoryPath = chooser.showDialog(GdeJePecatApp.getPrimaryStage());
 
-        if(imagesDirectory != null) {
+        if(directoryPath != null && !directoryPath.getPath().equals("")) {
+            imagesDirectory = directoryPath;
             lblFolderPath.setText(imagesDirectory.getAbsolutePath());
         }
     }
@@ -131,9 +132,10 @@ public class MainScreenController implements Initializable{
                         "Images", FileFormats.getSupportedFormatsForFileChooser());
         chooser.getExtensionFilters().add(fileExtensions);
 
-        logo = chooser.showOpenDialog(Main.getPrimaryStage());
+        File pathToLogo = chooser.showOpenDialog(GdeJePecatApp.getPrimaryStage());
 
-        if(logo != null) {
+        if(pathToLogo != null && !pathToLogo.getPath().equals("")) {
+            logo = pathToLogo;
             lblLogoPath.setText(logo.getAbsolutePath());
         }
     }
@@ -153,41 +155,30 @@ public class MainScreenController implements Initializable{
     @FXML
     public void putLogos() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
-        Future<Future<Void>> processingResult;
         if (imagesDirectory != null && logo != null) {
-            processingResult = executorService.submit(() -> {
-                UIData ud = getUiData();
-                return imageService.putLogo(ud);
-               // return null;
-            });
+            executorService.submit(() -> imageService.putLogo(getUiData()));
         } else {
             showWarning("Path to images folder or logo is not properly set");
             return;
         }
 
-//        ExecutorService progressExecutorService = Executors.newSingleThreadExecutor();
-//        progressExecutorService.submit(() -> showProgress()); staro
-
-        //showProgress();
-
-        try {
-            Void v = processingResult.get().get();
-            System.out.println("Void: " + v);
-        } catch (InterruptedException | ExecutionException e) {
-            System.out.println("Ušao u keč: " + e.getMessage());
-            showWarning(e.getCause().getMessage());
-            return;
-        }
+        showProgress();
     }
 
     @FXML
     public void preview() {
-        BufferedImage previewImage = null;
+        BufferedImage previewImage;
         FXMLLoader fxmlLoader = new FXMLLoader();
         fxmlLoader.setLocation(getClass().getResource("/fxml/preview.fxml"));
         try {
             fxmlLoader.load();
-            previewImage = imageService.getPreviewImage(getUiData());
+            if (imagesDirectory != null && logo != null) {
+                previewImage = imageService.getPreviewImage(getUiData());
+            }  else {
+                showWarning("Path to images folder or logo is not properly set");
+                return;
+            }
+
         }
         catch (IOException | GdeJePecatException e) {
                 showWarning(e.getMessage());
@@ -240,14 +231,6 @@ public class MainScreenController implements Initializable{
         };
     }
 
-    private void showWarning(String message) {
-        Alert alert = new Alert(Alert.AlertType.WARNING);
-        alert.setTitle("Warning");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
-    }
-
     private void showProgress() {
         FXMLLoader fxmlLoader = new FXMLLoader();
         fxmlLoader.setLocation(getClass().getResource("/fxml/progress.fxml"));
@@ -265,6 +248,12 @@ public class MainScreenController implements Initializable{
         stage.setTitle("Progress");
         stage.setScene(new Scene(parent));
         stage.setResizable(false);
+        stage.setOnHiding(new EventHandler<WindowEvent>() {
+            @Override
+            public void handle(WindowEvent event) {
+                Platform.runLater(() -> imageService.terminate());
+            }
+        });
         stage.show();
 
     }

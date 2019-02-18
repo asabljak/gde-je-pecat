@@ -2,7 +2,7 @@ package hr.esn.gdejepecat.service;
 
 import hr.esn.gdejepecat.model.UIData;
 import hr.esn.gdejepecat.exception.GdeJePecatException;
-import hr.esn.gdejepecat.filter.FileFormats;
+import hr.esn.gdejepecat.helper.FileFormats;
 import net.coobird.thumbnailator.Thumbnails;
 
 import javax.imageio.ImageIO;
@@ -17,80 +17,42 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 public class ImageService {
-    AtomicInteger finished;
-    ExecutorService executorService;
-    Future<Void> executionResult;
-    int imagesTotal;
+    private AtomicInteger finished;
+    private AtomicInteger failed;
+    private ExecutorService executorService;
+    private int imagesTotal;
     private ArrayList<BufferedImage> bufferedImageList = new ArrayList<>();
-    UIData uiData;
+    private UIData uiData;
 
-    public ImageService() {
-        finished = new AtomicInteger();
-    }
-
-    public Future<Void> putLogo(UIData uiData) throws GdeJePecatException {
+    public void putLogo(UIData uiData) throws GdeJePecatException {
         this.uiData = uiData;
         File destination;
         File[] allPhotos = uiData.getImagesDirectory().listFiles(getImageFilter());
         imagesTotal = allPhotos.length;
+        finished = new AtomicInteger();
+        failed = new AtomicInteger();
 
         destination = new File(uiData.getImagesDirectory().getAbsolutePath() + "/gde_je_pecat/");
         destination.mkdirs();
 
-        executionResult = null;
-        long begin = System.currentTimeMillis();
-        executorService = Executors.newFixedThreadPool(4);
+        executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
-        ///////////////////////////////////////////////
-        //ImageService imageService = new ImageService();
-        Stream.of(allPhotos)
-                .parallel()
-                .forEach(this::mergeImages);
-
-        long end = System.currentTimeMillis();
-        long time = end - begin;
-        System.out.println("Duration: " + time + " milis");
-
-      /*  for(File photo : allPhotos) {
-
-
-            File resultImage = new File(destination.getAbsolutePath() + "/" + photo.getName());
-
-            executionResult = executorService.submit(() -> {
-                BufferedImage sourceImage = imageService.mergeImages(photo, uiData.getLogo(), uiData.getxOffset(), uiData.getyOffset(),
-                        uiData.getOpacity(),uiData.getScaleFactor(), uiData.getWidth(), uiData.getHeight());
-                try {
-                    ImageIO.write(sourceImage, "jpeg", resultImage);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                finished.getAndIncrement();
-                return null;
-            });
-        }*/
-
-//        executorService.shutdown();
-
-       /* try {
-            executionResult.get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new GdeJePecatException(e.getCause().getMessage());
+        for(File photo : allPhotos) {
+            executorService.submit(() -> mergeImages(photo));
         }
-
-        long end = System.currentTimeMillis();
-        long time = end - begin;
-        System.out.println("Duration: " + time + " milis");*/
-
-        return executionResult;
     }
 
     public BufferedImage getPreviewImage(UIData uiData) throws GdeJePecatException{
-        File photo = uiData.getImagesDirectory().listFiles(getImageFilter())[0]; //TODO provjeri null
-        Stream.of(photo).forEach(this::mergeImages);
-        return bufferedImageList.get(0);
-//        /*return mergeImages(photo, uiData.getLogo(), uiData.getxOffset(), uiData.getyOffset(), uiData.getOpacity(),
-//         */       uiData.getScaleFactor(), uiData.getWidth(), uiData.getHeight());
+        File[] photos = uiData.getImagesDirectory().listFiles(getImageFilter());
+            if (photos != null) {
+            Stream.of(photos)
+                    .limit(1)
+                    .forEach(this::mergeImages);
+        } else {
+            throw new GdeJePecatException("Path to images folder or logo is not properly set");
+        }
 
+        return bufferedImageList.get(0);
     }
 
     public boolean isWorkInProgress() {
@@ -101,15 +63,16 @@ public class ImageService {
         return this.imagesTotal;
     }
 
-    public int getNumberOfFinishedImages() {
+    public int getFinishedImagesNumber() {
         return  finished.get();
     }
 
+    public int getFailed() {
+        return failed.get();
+    }
+
     public void terminate() {
-        //executorService.shutdownNow();
-        if(executionResult != null) {
-            executionResult.cancel(true);
-        }
+        executorService.shutdownNow();
     }
 
     private void mergeImages(File photo) {
@@ -152,6 +115,7 @@ public class ImageService {
 
             if(topLeftX < 0 || topLeftY < 0) {
                  System.out.println(photo.getName() + " - Logo position is outside of source image");
+                 failed.getAndIncrement();
                  throw new GdeJePecatException("Logo position is outside of source image.");
             }
 
@@ -165,6 +129,7 @@ public class ImageService {
             System.err.println(photo.getAbsolutePath() + " - " +  ex);
         }
 
+        finished.getAndIncrement();
         bufferedImageList.add(sourceImage);
 
         File destination = new File(uiData.getImagesDirectory().getAbsolutePath() + "/gde_je_pecat/");
