@@ -11,7 +11,7 @@
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.RowConstraints?>
 
-<GridPane maxHeight="-Infinity" maxWidth="800" minHeight="-Infinity" minWidth="800" prefWidth="800.0" xmlns="http://javafx.com/javafx/8.0.172-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="hr.esn.gdejepecat.javafx.MainScreenController">
+<GridPane maxHeight="-Infinity" maxWidth="1000.0" minHeight="-Infinity" minWidth="1000.0" prefWidth="1000.0" xmlns="http://javafx.com/javafx/8.0.172-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="hr.esn.gdejepecat.javafx.MainScreenController">
   <columnConstraints>
     <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
   </columnConstraints>
@@ -21,7 +21,7 @@
     <RowConstraints minHeight="50.0" vgrow="SOMETIMES" />
   </rowConstraints>
    <children>
-      <TitledPane fx:id="photosPane" maxHeight="243.0" maxWidth="800.0" minHeight="243.0" minWidth="800.0" prefHeight="243.0" prefWidth="800.0" text="Photos">
+      <TitledPane fx:id="photosPane" prefHeight="243.0" prefWidth="800.0" text="Photos">
          <content>
             <GridPane prefHeight="227.0" prefWidth="798.0">
               <columnConstraints>

@@ -17,7 +17,7 @@ public class GdeJePecatApp extends Application {
     public void start(Stage primaryStage) throws Exception{
         Parent root = FXMLLoader.load(getClass().getResource("/fxml/main-screen.fxml"));
         primaryStage.setTitle("Gde je pečat?");
-        primaryStage.setScene(new Scene(root, 750, 500));
+        primaryStage.setScene(new Scene(root, 1000, 500));
         primaryStage.setResizable(false);
         primaryStage.getIcons().add(new Image("/icons/icon.png"));
         primaryStage.setOnHiding(new EventHandler<WindowEvent>() {

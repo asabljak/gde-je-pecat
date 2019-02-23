@@ -13,6 +13,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
 import javafx.scene.layout.GridPane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
@@ -193,6 +194,7 @@ public class MainScreenController implements Initializable{
         stage.setTitle("Preview");
         stage.setScene(new Scene(parent, 1190, 870));
         stage.setResizable(false);
+        stage.getIcons().add(new Image("/icons/icon.png"));
         stage.show();
     }
 
@@ -246,6 +248,7 @@ public class MainScreenController implements Initializable{
         Parent parent = fxmlLoader.getRoot();
         Stage stage = new Stage();
         stage.setTitle("Progress");
+        stage.getIcons().add(new Image("/icons/icon.png"));
         stage.setScene(new Scene(parent));
         stage.setResizable(false);
         stage.setOnHiding(new EventHandler<WindowEvent>() {
@@ -255,8 +258,5 @@ public class MainScreenController implements Initializable{
             }
         });
         stage.show();
-
     }
-
-
 }
