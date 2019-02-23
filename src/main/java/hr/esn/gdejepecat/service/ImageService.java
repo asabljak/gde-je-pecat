@@ -11,17 +11,15 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
 public class ImageService {
     private AtomicInteger finished;
     private AtomicInteger failed;
     private ExecutorService executorService;
     private int imagesTotal;
-    private ArrayList<BufferedImage> bufferedImageList = new ArrayList<>();
+    private BufferedImage bufferedImage;
     private UIData uiData;
 
     public void putLogo(UIData uiData) throws GdeJePecatException {
@@ -38,23 +36,22 @@ public class ImageService {
         executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
         for(File photo : allPhotos) {
-            executorService.submit(() -> mergeImages(photo));
+            executorService.submit(() -> mergeImages(photo, false));
         }
     }
 
     public BufferedImage getPreviewImage(UIData uiData) throws GdeJePecatException{
         this.uiData = uiData;
-        finished = new AtomicInteger();
+        failed = new AtomicInteger();
         File[] photos = uiData.getImagesDirectory().listFiles(getImageFilter());
-            if (photos != null) {
-            Stream.of(photos)
-                    .limit(1)
-                    .forEach(this::mergeImages);
+
+        if (photos != null && photos.length > 0) {
+            mergeImages(photos[0], true);
         } else {
             throw new GdeJePecatException("Path to images folder or logo is not properly set");
         }
 
-        return bufferedImageList.get(0);
+        return bufferedImage;
     }
 
     public boolean isWorkInProgress() {
@@ -77,7 +74,7 @@ public class ImageService {
         executorService.shutdownNow();
     }
 
-    private void mergeImages(File photo) {
+    private void mergeImages(File photo, boolean preview) {
         BufferedImage sourceImage = null;
         int width = uiData.getWidth();
         int height = uiData.getHeight();
@@ -131,15 +128,17 @@ public class ImageService {
             System.err.println(photo.getAbsolutePath() + " - " +  ex);
         }
 
-        finished.getAndIncrement();
-        bufferedImageList.add(sourceImage);
+        bufferedImage = sourceImage;
 
-        File destination = new File(uiData.getImagesDirectory().getAbsolutePath() + "/gde_je_pecat/");
-        File resultImage = new File(destination.getAbsolutePath() + "/" + photo.getName());
-        try {
-            ImageIO.write(sourceImage, "jpeg", resultImage);
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (!preview) {
+            File destination = new File(uiData.getImagesDirectory().getAbsolutePath() + "/gde_je_pecat/");
+            File resultImage = new File(destination.getAbsolutePath() + "/" + photo.getName());
+            finished.getAndIncrement();
+            try {
+                ImageIO.write(sourceImage, "jpeg", resultImage);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
